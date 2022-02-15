@@ -1,0 +1,22 @@
+node{
+    properties([buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '', numToKeepStr: '5')), [$class: 'JobLocalConfiguration', changeReasonComment: ''], pipelineTriggers([pollSCM('* * * * *')])])
+    def mavenHome= tool name:"maven3.8.4"
+stage('checkoutCode'){
+git branch: 'development', credentialsId: 'ac68bd47-d1e9-4246-aad5-607f59766a97', url: 'https://github.com/Famida-Shaik-dec/maven-web-application.git'
+}
+stage('Build'){
+    sh "${mavenHome}/bin/mvn clean package"
+
+}
+stage('ExecuteSonarQubereport'){
+    sh "${mavenHome}/bin/mvn sonar:sonar"
+}
+stage('UploadArtifactIntoRepository'){
+    
+    sh "${mavenHome}/bin/mvn deploy"
+}
+stage('deploy tomcat application'){
+    sshagent(['8791d69f-b4a3-4984-b224-200c628bf416']) {
+    sh "scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@54.90.92.184:/opt/apache-tomcat-9.0.58/webapps/"
+}
+}
